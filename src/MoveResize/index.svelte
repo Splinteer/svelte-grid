@@ -46,9 +46,9 @@
     cursor: row-resize;
   }
 
-  .svlt-grid-item .svlt-grid-active {
+  .svlt-grid-active {
     z-index: 3;
-    cursor: grabbing;
+    cursor: grabbing!important;
     position: fixed;
     opacity: 0.5;
 
