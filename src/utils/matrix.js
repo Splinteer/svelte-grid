@@ -46,6 +46,7 @@ export function makeMatrixFromItemsIgnore(items, ignoreList, _row, _col) {
     const { x, y, h } = value;
     const w = Math.min(_col, value.w);
 
+
     if (ignoreList.indexOf(id) === -1) {
       for (var j = y; j < y + h; j++) {
         const row = matrix[j];

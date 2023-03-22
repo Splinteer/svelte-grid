@@ -4,7 +4,7 @@ module.exports = {
         "es6": true,
         "node": true
     },
-    "extends": "eslint:recommended",
+    extends: ["airbnb-base", "airbnb-typescript/base"],
     "globals": {
         "Atomics": "readonly",
         "SharedArrayBuffer": "readonly"
@@ -13,6 +13,18 @@ module.exports = {
         "ecmaVersion": 2019,
         "sourceType": "module"
     },
-    "rules": {
+    rules: {
+      "prettier/prettier": "error",
+      "no-console": "error",
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-dupe-class-members": ["error"],
+      "@typescript-eslint/no-useless-constructor": ["error"],
+      "@typescript-eslint/no-inferrable-types": ["off"],
+
+      "import/extensions": [
+        "error",
+        "ignorePackages",
+        { js: "always", jsx: "never", ts: "never", tsx: "never" },
+      ],
     },
 };

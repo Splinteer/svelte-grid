@@ -5,31 +5,97 @@ export function getItemById(id, items) {
   return items.find((value) => value.id === id);
 }
 
-export function findFreeSpaceForItem(matrix, item) {
+function findNearestEmptyPlace(matrix, x, y) {
+  const directions = [[-1, 0], [0, 1], [1, 0], [0, -1]];
+
+  for (let i = 1; i < matrix.length; i++) {
+    for (const [dx, dy] of directions) {
+      const row = x + dx * i;
+      const col = y + dy * i;
+      if (row >= 0 && row < matrix.length && col >= 0 && col < matrix[0].length && matrix[row][col] === null) {
+        return [row, col];
+      }
+    }
+  }
+
+  return null;
+}
+
+export function findFreeSpaceForItem(matrix, crossedItem, grabbedItem) {
   const cols = matrix[0].length;
-  const w = Math.min(cols, item.w);
-  let xNtime = cols - w;
+  const w = Math.min(cols, crossedItem.w);
+  let xNtime = cols - w; // 52 - 2 = 50
   let getMatrixRows = matrix.length;
 
-  for (var i = 0; i < getMatrixRows; i++) {
-    const row = matrix[i];
-    for (var j = 0; j < xNtime + 1; j++) {
-      const sliceA = row.slice(j, j + w);
+  const fromTheRight = grabbedItem.x > crossedItem.x;
+  const fromTheTop = grabbedItem.y < crossedItem.y;
+
+  for (var j = fromTheRight ? 0 : crossedItem.x + crossedItem.w; j < xNtime + 1; j++) {
+    const sliceA = matrix[crossedItem.y].slice(j, j + w);
+    const empty = sliceA.every((val) => val === undefined);
+    if (empty) {
+      const isEmpty = matrix.slice(crossedItem.y, crossedItem.y + crossedItem.h).every((a) => a.slice(j, j + w).every((n) => n === undefined));
+
+      if (isEmpty) {
+        return { y: crossedItem.y, x: j };
+      }
+    }
+  }
+
+  if (!fromTheRight) {
+    for(var j = 0; j < crossedItem.x + crossedItem.w; j++) {
+      console.log(j, crossedItem)
+      const sliceA = matrix[crossedItem.y].slice(j, j + w);
       const empty = sliceA.every((val) => val === undefined);
       if (empty) {
-        const isEmpty = matrix.slice(i, i + item.h).every((a) => a.slice(j, j + w).every((n) => n === undefined));
+        const isEmpty = matrix.slice(crossedItem.y, crossedItem.y + crossedItem.h).every((a) => a.slice(j, j + w).every((n) => n === undefined));
 
         if (isEmpty) {
-          return { y: i, x: j };
+          return { y: crossedItem.y, x: j };
         }
       }
     }
   }
 
+  const row = matrix[crossedItem.y];
+  const sliceA = row.slice(0, 0 + w);
+  const empty = sliceA.every((val) => val === undefined);
+  console.log(sliceA, empty)
+
+
+
+
+  // for (var i = 0; i < getMatrixRows; i++) {
+  //   const row = matrix[i];
+  //   for (var j = 0; j < xNtime + 1; j++) {
+  //     const sliceA = row.slice(j, j + w);
+  //     const empty = sliceA.every((val) => val === undefined);
+  //     if (empty) {
+  //       const isEmpty = matrix.slice(i, i + crossedItem.h).every((a) => a.slice(j, j + w).every((n) => n === undefined));
+
+  //       if (isEmpty) {
+  //         return { y: i, x: j };
+  //       }
+  //     }
+  //   }
+  // }
+
+  // return {
+  //   y: getMatrixRows,
+  //   x: 0,
+  // };
+
+  const test = structuredClone(matrix);
+  test.forEach((row, i) => { row.forEach((value, j) => test[i][j]=!!value) })
+
+  console.log(test)
+
+  // console.log(test);
+
   return {
-    y: getMatrixRows,
-    x: 0,
-  };
+    x: 6,
+    y: 2
+  }
 }
 
 const getItem = (item, col) => {
@@ -80,27 +146,29 @@ export function moveItemsAroundItem(active, items, cols, original) {
   return tempItems;
 }
 
-export function moveItem(active, items, cols, original) {
+export function moveItem(active, items, cols, grabbedItem, maxRows) {
   // Get current item from the breakpoint
   const item = getItem(active, cols);
 
   // Create matrix from the items expect the active
-  let matrix = makeMatrixFromItemsIgnore(items, [item.id], getRowsCount(items, cols), cols);
+  let matrix = makeMatrixFromItemsIgnore(items, [item.id], getRowsCount(items, cols, maxRows), cols);
   // Getting the ids of items under active Array<String>
   const closeBlocks = findCloseBlocks(items, matrix, item);
   // Getting the objects of items under active Array<Object>
-  let closeObj = findItemsById(closeBlocks, items);
+  let crossedObjects = findItemsById(closeBlocks, items);
+
   // Getting whenever of these items is fixed
-  const fixed = closeObj.find((value) => value[cols].fixed);
+  const fixed = crossedObjects.find((value) => value[cols].fixed);
 
   // If found fixed, reset the active to its original position
   if (fixed) return items;
+
 
   // Update items
   items = updateItem(items, active, item, cols);
 
   // Create matrix of items expect close elements
-  matrix = makeMatrixFromItemsIgnore(items, closeBlocks, getRowsCount(items, cols), cols);
+  matrix = makeMatrixFromItemsIgnore(items, closeBlocks, getRowsCount(items, cols, maxRows), cols);
 
   // Create temp vars
   let tempItems = items;
@@ -109,15 +177,16 @@ export function moveItem(active, items, cols, original) {
   // Exclude resolved elements ids in array
   let exclude = [];
 
+
   // Iterate over close elements under active item
-  closeObj.forEach((item) => {
+  crossedObjects.forEach((crossedItem) => {
     // Find position for element
-    let position = findFreeSpaceForItem(matrix, item[cols]);
+    let position = findFreeSpaceForItem(matrix, crossedItem[cols], grabbedItem[cols]);
     // Exclude item
-    exclude.push(item.id);
+    exclude.push(crossedItem.id);
 
     // Assign the position to the element in the column
-    tempItems = updateItem(tempItems, item, position, cols);
+    tempItems = updateItem(tempItems, crossedItem, position, cols);
 
     // Recreate ids of elements
     let getIgnoreItems = tempCloseBlocks.filter((value) => exclude.indexOf(value) === -1);
@@ -167,7 +236,7 @@ export function adjust(items, col) {
   return res;
 }
 
-export function getUndefinedItems(items, col, breakpoints) {
+export function getUndefinedItems(items, col) {
   return items
     .map((value) => {
       if (!value[col]) {
@@ -184,6 +253,7 @@ export function getClosestColumn(items, item, col, breakpoints) {
     .reduce(function (acc, value) {
       const isLower = Math.abs(value - col) < Math.abs(acc - col);
 
+
       return isLower ? value : acc;
     });
 }
@@ -191,10 +261,9 @@ export function getClosestColumn(items, item, col, breakpoints) {
 export function specifyUndefinedColumns(items, col, breakpoints) {
   let matrix = makeMatrixFromItems(items, getRowsCount(items, col), col);
 
-  const getUndefinedElements = getUndefinedItems(items, col, breakpoints);
+  const getUndefinedElements = getUndefinedItems(items, col);
 
   let newItems = [...items];
-
   getUndefinedElements.forEach((elementId) => {
     const getElement = items.find((item) => item.id === elementId);
 

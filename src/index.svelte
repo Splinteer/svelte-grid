@@ -1,7 +1,6 @@
 <style>
   .svlt-grid-container {
-    position: relative;
-    width: 100%;
+    position: absolute;
   }
 </style>
 
@@ -46,7 +45,6 @@
   import { moveItemsAroundItem, moveItem, getItemById, specifyUndefinedColumns, findFreeSpaceForItem } from "./utils/item.js";
   import { onMount, createEventDispatcher } from "svelte";
   import { getColumn, getRowsCount, throttle } from "./utils/other.js";
-  import { makeMatrixFromItems } from "./utils/matrix.js";
   import MoveResize from "./MoveResize/index.svelte";
 
   const dispatch = createEventDispatcher();
@@ -141,9 +139,10 @@
       };
 
       if (fillSpace) {
+        console.log('oklmm');
         items = moveItemsAroundItem(activeItem, items, getComputedCols, getItemById(detail.id, items));
       } else {
-        items = moveItem(activeItem, items, getComputedCols, getItemById(detail.id, items));
+        items = moveItem(activeItem, items, getComputedCols, getItemById(detail.id, items), maxRows);
       }
 
       if (detail.onUpdate) detail.onUpdate();
